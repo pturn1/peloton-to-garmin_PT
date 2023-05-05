@@ -11,22 +11,30 @@ The recommended installation method is with Docker. If you're not familiar with 
 
 P2G offers two main flavors of docker images:
 
-1. [Docker Web UI]({{ site.baseurl }}{% link install/docker-webui.md %})
-1. [Docker Headless]({{ site.baseurl }}{% link install/docker-headless.md %})
+| Flavor | Support Garmin 2-Step Verification | Support Automatic Syncing |
+|:------------------|:-----------------------------------|:--------------------------|
+| [Web UI]({{ site.baseurl }}{% link install/docker-webui.md %}) | yes | only when Garmin 2fa is disabled |
+| [Docker Headless]({{ site.baseurl }}{% link install/docker-headless.md %}) | partial | only when Garmin 2fa is disabled |
+
+## Image Repositories
+
+P2G publishes Docker images to both [DockerHub](https://hub.docker.com/r/philosowaffle/peloton-to-garmin) and [GitHub Package](https://github.com/philosowaffle/peloton-to-garmin/pkgs/container/peloton-to-garmin).
 
 ## Tags
 
-The P2G docker images are available on [DockerHub](https://hub.docker.com/r/philosowaffle/peloton-to-garmin). The following tags are provided:
+The following tags are provided:
 
 ### Image flavors
 
-1. `stable` / `latest` - By default the base tag points to the headless version of P2G
-1. `api-stable` / `api-latest` - Used in conjunction with the `webui` image, provides the API and server for P2G user interface
-1. `webui-stable` / `webui-latest` - Used in conjunction with the `api` image, provides a P2G web user interface
+1. `stable`- By default the base tag points to the headless version of P2G
+2. `console-latest` - By default points to the latest version of the headless version of P2G
+3. `api-stable` / `api-latest` - Used in conjunction with the `webui` image, provides the API and server for P2G user interface
+4. `webui-stable` / `webui-latest` - Used in conjunction with the `api` image, provides a P2G web user interface
 
 ### Tag versioning
 
 1. `stable` - Always points to the latest release
+1. `v{X}` / `v3` / `v4` - Always points to the latest of the current major version
 1. `latest` - The bleeding edge of the master branch, breaking changes may happen
 1. `vX.Y.Z` - For using a specific released version
 

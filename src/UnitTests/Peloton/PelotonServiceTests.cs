@@ -1,4 +1,5 @@
 ﻿using Common;
+using Common.Dto;
 using Common.Dto.Peloton;
 using Common.Service;
 using FluentAssertions;
@@ -35,7 +36,7 @@ namespace UnitTests.Peloton
 			var pelotonApi = autoMocker.GetMock<IPelotonApi>();
 
 			pelotonApi.Setup(x => x.GetWorkoutByIdAsync("1"))
-					.ReturnsAsync(new JObject())
+					.ReturnsAsync(JObject.FromObject(new Workout() { Ride = new Ride() { Id = "12" } }))
 					.Verifiable();
 
 			pelotonApi.Setup(x => x.GetWorkoutSamplesByIdAsync("1"))
@@ -43,7 +44,7 @@ namespace UnitTests.Peloton
 					.Verifiable();
 
 			pelotonApi.Setup(x => x.GetWorkoutByIdAsync("2"))
-					.ReturnsAsync(new JObject())
+					.ReturnsAsync(JObject.FromObject(new Workout() { Ride = new Ride() { Id = "22" } }))
 					.Verifiable();
 
 			pelotonApi.Setup(x => x.GetWorkoutSamplesByIdAsync("2"))
@@ -51,7 +52,7 @@ namespace UnitTests.Peloton
 					.Verifiable();
 
 			pelotonApi.Setup(x => x.GetWorkoutByIdAsync("3"))
-					.ReturnsAsync(new JObject())
+					.ReturnsAsync(JObject.FromObject(new Workout() { Ride = new Ride() { Id = "32" } }))
 					.Verifiable();
 
 			pelotonApi.Setup(x => x.GetWorkoutSamplesByIdAsync("3"))
@@ -85,7 +86,7 @@ namespace UnitTests.Peloton
 				.ReturnsAsync(new PagedPelotonResponse<Workout>() { data = new List<Workout>() { new Workout() } });
 
 			var workouts = await pelotonService.GetRecentWorkoutsAsync(2);
-			workouts.Count.Should().Be(2);
+			workouts.Result.Count.Should().Be(2);
 
 			pelotonApi.Verify(x => x.GetWorkoutsAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(2));
 		}
@@ -105,9 +106,27 @@ namespace UnitTests.Peloton
 				.ReturnsAsync(new PagedPelotonResponse<Workout>() { data = new List<Workout>() });
 
 			var workouts = await pelotonService.GetRecentWorkoutsAsync(20);
-			workouts.Count.Should().Be(2);
+			workouts.Result.Count.Should().Be(2);
 
 			pelotonApi.Verify(x => x.GetWorkoutsAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Exactly(3));
+		}
+
+		[TestCase("")]
+		[TestCase("   ")]
+		[TestCase(null)]
+		[TestCase("00000000000000000000000000000000")]
+		public async Task GetWorkoutDetailsAsync_Should_Only_Enrich_ValidRideIds(string rideId)
+		{
+			var autoMocker = new AutoMocker();
+			var pelotonService = autoMocker.CreateInstance<PelotonService>();
+
+			var pelotonApi = autoMocker.GetMock<IPelotonApi>();
+			pelotonApi.Setup(x => x.GetWorkoutByIdAsync("someWorkoutId"))
+				.ReturnsAsync(JObject.FromObject(new Workout() { Ride = new Ride() { Id = rideId } }));
+
+			var workouts = await pelotonService.GetWorkoutDetailsAsync("someWorkoutId");
+
+			pelotonApi.Verify(x => x.GetClassSegmentsAsync(It.IsAny<string>()), Times.Never);
 		}
 	}
 
@@ -117,7 +136,7 @@ namespace UnitTests.Peloton
 		{
 		}
 
-		public new Task<ICollection<Workout>> GetRecentWorkoutsAsync(int numWorkoutsToDownload)
+		public new Task<ServiceResult<ICollection<Workout>>> GetRecentWorkoutsAsync(int numWorkoutsToDownload)
 		{
 			return base.GetRecentWorkoutsAsync(numWorkoutsToDownload);
 		}

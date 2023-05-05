@@ -1,8 +1,10 @@
 ﻿@page "/settings"
 @inherits TracingComponentBase
 @inject IApiClient _apiClient
+@inject IHxMessengerService _toaster;
 
 <PageTitle>Settings</PageTitle>
+
 <h1>Settings</h1>
 <a href="@configDocumentation">Documentation</a>
 <br /><br />
@@ -21,7 +23,7 @@
 				<br />
 				<HxSwitch Label="Check for new P2G Releases" @bind-Value="appSettings.CheckForUpdates" />
 				<br />
-				<HxAccordion CssClass="accordion-flush">
+				<HxAccordion>
 					<HxAccordionItem>
 						<HeaderTemplate>Advanced</HeaderTemplate>
 						<BodyTemplate>
@@ -45,6 +47,8 @@
 				<HxSwitch Label="Convert to TCX" @bind-Value="formatSettings.Tcx" />
 				<HxSwitch Label="Convert to JSON" @bind-Value="formatSettings.Json" />
 				<br />
+				<HxInputNumber Label="Strength: Default seconds per rep" TValue="int" @bind-Value="formatSettings.Strength.DefaultSecondsPerRep" />
+				<br />
 				<HxSelect
 					Label="Cycling Lap Type"
 					Data="@lapTypes"
@@ -59,15 +63,22 @@
 					NullDataText="Loading info..."
 					@bind-Value="formatSettings.Running.PreferredLapType" />
 				<br />
+				<HxSelect
+					Label="Rowing Lap Type"
+					Data="@lapTypes"
+					Nullable="false"
+					NullDataText="Loading info..."
+					@bind-Value="formatSettings.Rowing.PreferredLapType" />
 				<br />
-				<HxAccordion CssClass="accordion-flush">
+				<br />
+				<HxAccordion>
 					<HxAccordionItem>
 						<HeaderTemplate>Advanced</HeaderTemplate>
 						<BodyTemplate>
 							<HxInputText Label="Path to custom deviceInfo.xml file" @bind-Value="formatSettings.DeviceInfoPath" /><br />
 							<HxSwitch Label="Include Time In HR Zones" @bind-Value="formatSettings.IncludeTimeInHRZones" />
 							<HxSwitch Label="Include Time in Power Zones" @bind-Value="formatSettings.IncludeTimeInPowerZones" />
-							<HxSwitch Label="Save a local copy of FIT and TCX files to output dir" @bind-Value="formatSettings.SaveLocalCopy" />
+							<HxSwitch Label="Save a backup copy of Converted files to output dir" @bind-Value="formatSettings.SaveLocalCopy" />
 						</BodyTemplate>
 					</HxAccordionItem>
 				</HxAccordion>
@@ -85,7 +96,21 @@
 				<br />
 				<HxInputText @bind-Value="pelotonSettings.Email" Label="Email" Type="InputType.Email" InputMode="InputMode.Email" />
 				<br />
-				<HxInputText @bind-Value="pelotonSettings.Password" Label="Password" Placeholder="@pelotonPasswordPlaceholderString" Type="InputType.Password" />
+				<HxInputText @bind-Value="pelotonSettings.Password" Label="Password" Type="InputType.Password">
+					<LabelTemplate>
+						Password
+						@if (pelotonSettings.IsPasswordSet)
+						{
+							<HxBadge Type="BadgeType.RoundedPill" Color="ThemeColor.Success">Password is set</HxBadge>
+						}
+					</LabelTemplate>
+					<InputGroupEndTemplate>
+						@if (pelotonSettings.IsPasswordSet)
+						{
+							<HxButton Text="Clear" Color="ThemeColor.Secondary" Outline="true" OnClick="ClearPelotonPassword" />
+						}
+					</InputGroupEndTemplate>
+				</HxInputText>
 				<br />
 				<HxMultiSelect 
 				   Label="Excluded Workout Types"
@@ -102,40 +127,78 @@
 	</HxTab>
 	<HxTab Id="tab3" Title="Garmin">
 		<Content>
+			<br />
 			<EditForm Model="@garminSettings">
-				<br />
-				<HxSwitch Label="Automatically upload to Garmin Connect" @bind-Value="garminSettings.Upload" />
-				<br />
-				<HxFormState Enabled="@garminSettings.Upload">
-					<HxInputText @bind-Value="garminSettings.Email" Label="Email" Type="InputType.Email" InputMode="InputMode.Email" />
-					<br />
-					<HxInputText @bind-Value="garminSettings.Password" Label="Password" Placeholder="@garminPasswordPlaceholderString" Type="InputType.Password" />
-					<br />
-					<HxAccordion CssClass="accordion-flush">
-						<HxAccordionItem>
-							<HeaderTemplate>Advanced</HeaderTemplate>
-							<BodyTemplate>
-								<br />
-								<HxSelect
-										Label="Format to Upload"
-										Data="@formatTypes"
-										Nullable="false"
-										NullDataText="Loading info..."
-										@bind-Value="garminSettings.FormatToUpload" />
-								<br />
-								<HxSelect
-										Label="Upload Strategy to use"
-										Data="@uploadStrategyTypes"
-										Nullable="false"
-										NullDataText="Loading info..."
-										@bind-Value="garminSettings.UploadStrategy" />
-							</BodyTemplate>
-						</HxAccordionItem>
-					</HxAccordion>
-					<br />
-				</HxFormState>
-				<br />
-				<HxSubmit Color="ThemeColor.Primary" OnClick="SaveGarminSettings">Save</HxSubmit>
+				<div class="row g-3">
+					<div class="col-md-12">
+						<HxSwitch Text="Automatically upload to Garmin Connect" @bind-Value="garminSettings.Upload" Inline="true" />
+					</div>
+
+					<HxFormState Enabled="@garminSettings.Upload">
+						<div class="col-md-12">
+							<HxCard>
+								<HeaderTemplate>Auth</HeaderTemplate>
+								<BodyTemplate>
+									<div class="row">
+										<div class="col-md-6">
+											<HxInputText @bind-Value="garminSettings.Email" Label="Email" Type="InputType.Email" InputMode="InputMode.Email" />
+										</div>
+										<div class="col-md-6">
+											<HxInputText @bind-Value="garminSettings.Password" Label="Password" Type="InputType.Password">
+												<LabelTemplate>
+													Password
+													@if (garminSettings.IsPasswordSet)
+													{
+														<HxBadge Type="BadgeType.RoundedPill" Color="ThemeColor.Success">Password is set</HxBadge>
+													}
+												</LabelTemplate>
+												<InputGroupEndTemplate>
+													@if (garminSettings.IsPasswordSet)
+													{
+														<HxButton Text="Clear" Color="ThemeColor.Secondary" Outline="true" OnClick="ClearPelotonPassword" />
+													}
+												</InputGroupEndTemplate>
+											</HxInputText>
+										</div>
+									</div>
+								</BodyTemplate>
+								<FooterTemplate>
+									<HxSwitch Text="Two Step Verification Enabled" @bind-Value="garminSettings.TwoStepVerificationEnabled" />
+								</FooterTemplate>
+							</HxCard>
+						</div>
+
+						<div class="col-md-12">
+							<HxAccordion>
+								<HxAccordionItem>
+									<HeaderTemplate>Advanced</HeaderTemplate>
+									<BodyTemplate>
+										<div class="row">
+											<div class="col-md-6">
+												<HxSelect Label="Format to Upload"
+														  Data="@formatTypes"
+														  Nullable="false"
+														  NullDataText="Loading info..."
+														  @bind-Value="garminSettings.FormatToUpload" />
+											</div>
+
+											<div class="col-md-6">
+												<HxSelect Label="Upload Strategy to use"
+														  Data="@uploadStrategyTypes"
+														  Nullable="false"
+														  NullDataText="Loading info..."
+														  @bind-Value="garminSettings.UploadStrategy" />
+											</div>
+										</div>
+									</BodyTemplate>
+								</HxAccordionItem>
+							</HxAccordion>
+						</div>
+					</HxFormState>
+					<div class="col-md-3">
+						<HxSubmit Color="ThemeColor.Primary" OnClick="SaveGarminSettings">Save</HxSubmit>
+					</div>
+				</div>
 			</EditForm>
 		</Content>
 	</HxTab>
@@ -153,9 +216,6 @@
 	private SettingsPelotonGetResponse pelotonSettings;
 	private SettingsGarminGetResponse garminSettings;
 	private string configDocumentation;
-
-	private string pelotonPasswordPlaceholderString = string.Empty;
-	private string garminPasswordPlaceholderString = string.Empty;
 
 	private List<WorkoutType> selectedWorkoutTypes = new List<WorkoutType>();
 
@@ -178,26 +238,107 @@
 	protected async Task SaveAppSettings()
 	{
 		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(SaveAppSettings)}", kind: ActivityKind.Client);
-		appSettings = await _apiClient.SettingsAppPostAsync(appSettings);
+
+		_toaster.Clear();
+
+		try 
+		{
+			appSettings = await _apiClient.SettingsAppPostAsync(appSettings);
+			_toaster.AddInformation("App Settings Saved!");
+		}
+		catch (FlurlHttpException e) when (e.StatusCode is StatusCodes.Status400BadRequest)
+		{
+			var error = await e.GetResponseJsonAsync<ErrorResponse>();
+			_toaster.AddError(error.Message);
+		}
+		catch (Exception e)
+		{
+			_toaster.AddError($"Failed to save App Settings - {e.Message} - See logs for details.");
+			Log.Error("UI - Failed to save App settings.", e);
+		}
 	}
 
 	protected async Task SaveFormatSettings() 
 	{
 		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(SaveFormatSettings)}", kind: ActivityKind.Client);
-		formatSettings = await _apiClient.SettingsFormatPostAsync(formatSettings);
+
+		_toaster.Clear();
+		try
+		{
+			formatSettings = await _apiClient.SettingsFormatPostAsync(formatSettings);
+			_toaster.AddInformation("Format Settings Saved!");
+		}
+		catch (FlurlHttpException e) when (e.StatusCode is StatusCodes.Status400BadRequest)
+		{
+			var error = await e.GetResponseJsonAsync<ErrorResponse>();
+			_toaster.AddError(error.Message);
+		}
+		catch (Exception e)
+		{
+			_toaster.AddError($"Failed to save Format Settings - {e.Message} - See logs for details.");
+			Log.Error("UI - Failed to save Format settings.", e);
+		}
 	}
 
-	protected async Task SavePelotonSettings() 
+	protected void ClearPelotonPassword()
+	{
+		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(ClearPelotonPassword)}", kind: ActivityKind.Client);
+		pelotonSettings.Password = string.Empty;
+		pelotonSettings.IsPasswordSet = false;
+	}
+
+	protected async Task SavePelotonSettings()
 	{
 		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(SavePelotonSettings)}", kind: ActivityKind.Client);
-		pelotonSettings.ExcludeWorkoutTypes = selectedWorkoutTypes;
-		pelotonSettings = await _apiClient.SettingsPelotonPostAsync(pelotonSettings);
+
+		_toaster.Clear();
+
+		try
+		{
+			pelotonSettings.ExcludeWorkoutTypes = selectedWorkoutTypes;
+			pelotonSettings = await _apiClient.SettingsPelotonPostAsync(pelotonSettings.Map());
+			_toaster.AddInformation("Peloton Settings Saved!");
+		}
+		catch (FlurlHttpException e) when (e.StatusCode is StatusCodes.Status400BadRequest)
+		{
+			var error = await e.GetResponseJsonAsync<ErrorResponse>();
+			_toaster.AddError(error.Message);
+		}
+		catch (Exception e)
+		{
+			_toaster.AddError($"Failed to save Peloton Settings - {e.Message} - See logs for details.");
+			Log.Error("UI - Failed to save Peloton settings.", e);
+		}
+	}
+
+	protected void ClearGarminPassword()
+	{
+		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(ClearGarminPassword)}", kind: ActivityKind.Client);
+		garminSettings.Password = string.Empty;
+		garminSettings.IsPasswordSet = false;
 	}
 
 	protected async Task SaveGarminSettings() 
 	{
 		using var tracing = Tracing.ClientTrace($"{nameof(Settings)}.{nameof(SaveGarminSettings)}", kind: ActivityKind.Client);
-		garminSettings = await _apiClient.SettingsGarminPostAsync(garminSettings);
+
+		_toaster.Clear();
+
+		try
+		{
+			garminSettings = await _apiClient.SettingsGarminPostAsync(garminSettings.Map());
+			_toaster.AddInformation("Garmin Settings Saved!");
+		}
+		catch (FlurlHttpException e) when (e.StatusCode is StatusCodes.Status400BadRequest)
+		{
+			var error = await e.GetResponseJsonAsync<ErrorResponse>();
+			_toaster.AddError(error.Message);
+		}
+		catch (Exception e)
+		{
+			_toaster.AddError($"Failed to save Garmin Settings - {e.Message} - See logs for details.");
+			Log.Error("UI - Failed to save Garmin settings.", e);
+		}
 	}
 
 	private async Task LoadDataAsync()
@@ -217,9 +358,6 @@
 		formatSettings = settings.Format;
 		pelotonSettings = settings.Peloton;
 		garminSettings = settings.Garmin;
-
-		pelotonPasswordPlaceholderString = pelotonSettings.IsPasswordSet ? "password is set" : "password is not set";
-		garminPasswordPlaceholderString = garminSettings.IsPasswordSet ? "password is set" : "password is not set";
 
 		selectedWorkoutTypes = pelotonSettings.ExcludeWorkoutTypes.ToList();
 	}

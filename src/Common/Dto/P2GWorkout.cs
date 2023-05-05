@@ -1,51 +1,79 @@
 ﻿using Common.Dto.Peloton;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Common.Dto
 {
 	public class P2GWorkout
 	{
-		private WorkoutType _workoutType;
 		public WorkoutType WorkoutType => GetWorkoutType();
 
 		public UserData UserData { get; set; }
 		public Workout Workout { get; set; }
 		public WorkoutSamples WorkoutSamples { get; set; }
+		public ICollection<P2GExercise> Exercises { get; set; }
 
 		public dynamic Raw { get; set; }
 
 		private WorkoutType GetWorkoutType()
 		{
-			if (_workoutType != WorkoutType.None) return _workoutType;
 			if (Workout is null) return WorkoutType.None;
 
-			var isOutdoorWorkout = IsOutdoorWorkout(WorkoutSamples);
-
-			switch (Workout.Fitness_Discipline)
-			{
-				case FitnessDiscipline.None: _workoutType = WorkoutType.None; break;
-				case FitnessDiscipline.Bike_Bootcamp: _workoutType = WorkoutType.BikeBootcamp; break;
-				case FitnessDiscipline.Cardio: _workoutType = WorkoutType.Cardio; break;
-				case FitnessDiscipline.Circuit: _workoutType = WorkoutType.Circuit; break;
-				case FitnessDiscipline.Cycling: _workoutType = WorkoutType.Cycling; break;
-				case FitnessDiscipline.Meditation: _workoutType = WorkoutType.Meditation; break;
-				case FitnessDiscipline.Strength: _workoutType = WorkoutType.Strength; break;
-				case FitnessDiscipline.Stretching: _workoutType = WorkoutType.Stretching; break;
-				case FitnessDiscipline.Yoga: _workoutType = WorkoutType.Yoga; break;
-				case FitnessDiscipline.Running when isOutdoorWorkout: _workoutType = WorkoutType.OutdoorRunning; break;
-				case FitnessDiscipline.Running: _workoutType = WorkoutType.TreadmillRunning; break;
-				case FitnessDiscipline.Walking when isOutdoorWorkout: _workoutType = WorkoutType.OutdoorRunning; break;
-				case FitnessDiscipline.Walking: _workoutType = WorkoutType.TreadmillWalking; break;
-			}
-
-			return _workoutType;
+			return Workout.GetWorkoutType();
 		}
+	}
 
-		private bool IsOutdoorWorkout(WorkoutSamples workoutSamples)
+	public static class Extensions
+	{
+		public static WorkoutType GetWorkoutType(this Workout workout)
 		{
-			if (workoutSamples == null) return false;
-
-			return workoutSamples.Location_Data is object
-				&& workoutSamples.Location_Data.Count > 0;
+			return workout.Fitness_Discipline switch
+			{
+				FitnessDiscipline.None => WorkoutType.None,
+				FitnessDiscipline.Bike_Bootcamp => WorkoutType.BikeBootcamp,
+				FitnessDiscipline.Caesar => WorkoutType.Rowing,
+				FitnessDiscipline.Cardio => WorkoutType.Cardio,
+				FitnessDiscipline.Circuit => WorkoutType.Circuit,
+				FitnessDiscipline.Cycling => WorkoutType.Cycling,
+				FitnessDiscipline.Meditation => WorkoutType.Meditation,
+				FitnessDiscipline.Strength => WorkoutType.Strength,
+				FitnessDiscipline.Stretching => WorkoutType.Stretching,
+				FitnessDiscipline.Yoga => WorkoutType.Yoga,
+				FitnessDiscipline.Running when workout.Is_Outdoor => WorkoutType.OutdoorRunning,
+				FitnessDiscipline.Running => WorkoutType.TreadmillRunning,
+				FitnessDiscipline.Walking when workout.Is_Outdoor => WorkoutType.OutdoorWalking,
+				FitnessDiscipline.Walking => WorkoutType.TreadmillWalking,
+				_ => WorkoutType.None,
+			};
 		}
+
+	}
+
+	public record P2GExercise
+	{
+		public string Id { get; init; }
+		public string Name { get; init; }
+		public int StartOffsetSeconds { get; init; }
+		public int DurationSeconds { get; init; }
+		public MovementTargetType Type { get; init; }
+		public int? Reps { get; init; }
+		public P2GWeight Weight { get; init; }
+	}
+
+	public record P2GWeight
+	{
+		public double Value { get; init; }
+
+		/// <summary>
+		/// lb
+		/// </summary>
+		public string Unit { get; init; }
+	}
+
+	public enum MovementTargetType : byte
+	{
+		Unknown = 0,
+		Reps = 1,
+		Time = 2
 	}
 }

@@ -96,9 +96,6 @@ public class App
 
 
 	public static string DataDirectory = Path.GetFullPath(Path.Join(Environment.CurrentDirectory, "data"));
-	public string FitDirectory => Path.GetFullPath(Path.Join(OutputDirectory, "fit"));
-	public string JsonDirectory => Path.GetFullPath(Path.Join(OutputDirectory, "json"));
-	public string TcxDirectory => Path.GetFullPath(Path.Join(OutputDirectory, "tcx"));
 	public string FailedDirectory => Path.GetFullPath(Path.Join(OutputDirectory, "failed"));
 	public string DownloadDirectory => Path.GetFullPath(Path.Join(WorkingDirectory, "downloaded"));
 	public string UploadDirectory => Path.GetFullPath(Path.Join(WorkingDirectory, "upload"));
@@ -111,6 +108,8 @@ public class Format
 	{
 		Cycling = new Cycling();
 		Running = new Running();
+		Rowing = new Rowing();
+		Strength= new Strength();
 	}
 
 	[DisplayName("FIT")]
@@ -136,18 +135,34 @@ public class Format
 	public string DeviceInfoPath { get; set; }
 	public Cycling Cycling { get; set; }
 	public Running Running { get; set; }
+	public Rowing Rowing { get; init; }
+	public Strength Strength { get; init; }
 }
 
-public class Cycling
+public record Cycling
 {
-	[DisplayName("Cycling Preferred Lap Type")]
 	public PreferredLapType PreferredLapType { get; set; }
 }
 
-public class Running
+public record Running
 {
-	[DisplayName("Running Preferred Lap Type")]
 	public PreferredLapType PreferredLapType { get; set; }
+}
+
+public record Rowing
+{
+	public PreferredLapType PreferredLapType { get; set; }
+}
+
+public record Strength
+{
+	/// <summary>
+	/// When no Rep information is provided by Peloton, P2G will calculate number
+	/// of reps based on this default value. Example, if your DefaultNumSecondsPerRep is 3,
+	/// and the Exercise duration was 15 seconds, then P2G would credit you with 5 reps for that
+	/// exercise.
+	/// </summary>
+	public int DefaultSecondsPerRep { get; set; } = 3;
 }
 
 public enum PreferredLapType
@@ -158,7 +173,7 @@ public enum PreferredLapType
 	Class_Targets = 3
 }
 
-public class Peloton
+public class Peloton : ICredentials
 {
 	public Peloton()
 	{
@@ -166,28 +181,26 @@ public class Peloton
 		NumWorkoutsToDownload = 5;
 	}
 
+	public EncryptionVersion EncryptionVersion { get; set; }
 	public string Email { get; set; }
 	public string Password { get; set; }
-	[DisplayName("Number of Workouts to Download")]
 	public int NumWorkoutsToDownload { get; set; }
-	[DisplayName("Exclude Workout Types")]
-	[Description("List of workout types that you do not want P2G to download/convert/upload. Hold the Ctrl key and click to multi-select.")]
 	public ICollection<WorkoutType> ExcludeWorkoutTypes { get; set; }
 }
 
-public class Garmin
+public class Garmin : ICredentials
 {
 	public Garmin()
 	{
 		UploadStrategy = UploadStrategy.NativeImplV1;
 	}
 
+	public EncryptionVersion EncryptionVersion { get; set; }
 	public string Email { get; set; }
 	public string Password { get; set; }
+	public bool TwoStepVerificationEnabled { get; set; }
 	public bool Upload { get; set; }
-	[DisplayName("Format to Upload")]
 	public FileFormat FormatToUpload { get; set; }
-	[DisplayName("Upload Strategy")]
 	public UploadStrategy UploadStrategy { get; set; }
 }
 
@@ -241,16 +254,29 @@ public class Developer
 	public string UserAgent { get; set; }
 }
 
-public enum UploadStrategy
+public enum UploadStrategy : byte
 {
 	PythonAndGuploadInstalledLocally = 0,
 	WindowsExeBundledPython = 1,
 	NativeImplV1 = 2
 }
 
-public enum FileFormat
+public enum FileFormat : byte
 {
 	Fit = 0,
 	Tcx = 1,
 	Json = 2
+}
+
+public enum EncryptionVersion : byte
+{
+	None = 0,
+	V1 = 1,
+}
+
+public interface ICredentials
+{
+	public EncryptionVersion EncryptionVersion { get; set; }
+	public string Email { get; set; }
+	public string Password { get; set; }
 }

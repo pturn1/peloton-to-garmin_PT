@@ -1,6 +1,7 @@
 ﻿using Common;
 using Common.Observe;
 using Dynastream.Fit;
+using Microsoft.VisualBasic;
 using Serilog;
 using System.IO;
 
@@ -87,6 +88,7 @@ namespace Conversion
 			mesgBroadcaster.SegmentLeaderboardEntryMesgEvent += Write;
 			mesgBroadcaster.SegmentPointMesgEvent += Write;
 			mesgBroadcaster.SessionMesgEvent += Write;
+			mesgBroadcaster.SetMesgEvent+= Write;
 			mesgBroadcaster.SlaveDeviceMesgEvent += Write;
 			mesgBroadcaster.SoftwareMesgEvent += Write;
 			mesgBroadcaster.SpeedZoneMesgEvent += Write;
@@ -120,7 +122,7 @@ namespace Conversion
 			_logger.Verbose($"{e.mesg.Name}::");
 			foreach(var f in e.mesg.Fields)
 			{
-				_logger.Verbose($"{f.Name}::{f.GetValue()}");
+				_logger.Verbose($"{f.GetName()}::{f.GetValue()}");
 			}
 
 			try
