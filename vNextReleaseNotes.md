@@ -3,13 +3,11 @@
 
 ## Features
 
-- Added support for mapping several more Exercises from Peloton to Garmin
-    - #466, #472
+- [#502] Partial support for Peloton Gym
+- [#497] Add minimal support for Rowing Bootcamp
+- More exercise mappings
+	- [#495] Open Lateral Raise, Pike Push Up, Dolphin
+	- [#499] Forearm Side Plank Rotation, Straight Leg Bicycle
 
 ## Fixes
-
-- [#491] - Fix case where a Garmin MFA code has a leading 0 causing p2g to send incorrect code to Garmin - @jheizer
-
-## Housekeeping
-
-- [#461] Bump dependencies
+- `All converters were skipped.` - confusing log message when no workouts needed to be synced
